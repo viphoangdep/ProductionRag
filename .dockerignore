@@ -1,0 +1,16 @@
+# Secrets — không đưa vào build context
+.env
+src/.env
+
+# Không cần trong image
+.git/
+.opencode/
+.vscode/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.ipynb
+docs/
+tests/
+
+# output/ BẮT BUỘC giữ: Dockerfile COPY nó vào image

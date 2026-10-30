@@ -1,0 +1,18 @@
+# Secrets — không commit
+.env
+src/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# Dữ liệu sinh ra bởi scripts/build_corpus.py (13 MB) — tạo lại bằng script
+output/
+
+# Tool của editor / agent
+.opencode/
+.vscode/
