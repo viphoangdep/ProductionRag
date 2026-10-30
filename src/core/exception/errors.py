@@ -1,24 +1,38 @@
-"""Lỗi nghiệp vụ: 1 class base + enum mã lỗi. Web layer map sang HTTP."""
+"""Lỗi nghiệp vụ: domain error codes và AppError base class."""
+from __future__ import annotations
+
 from enum import Enum
 
 
-class ErrorCode(Enum):
-    """(HTTP status, message mặc định). Mỗi loại lỗi là 1 giá trị enum, không phải 1 class."""
+class ErrorCode(str, Enum):
+    """Mã lỗi miền nghiệp vụ (domain error codes)."""
 
-    NOT_FOUND = (404, "data not found")
-    AGENT_TIMEOUT = (504, "agent timed out")
-    AGENT_FAILED = (500, "agent failed")
-    RATE_LIMITED = (429, "Too many requests. Please slow down.")
-    REQUEST_TIMEOUT = (504, "Request processing timed out")
-    PROMPT_INJECTION_DETECTED = (400, "Potential prompt injection detected. Request rejected.")
-    TOOL_BUDGET_EXCEEDED = (429, "Tool call budget exceeded for this request")
+    NOT_FOUND = "NOT_FOUND"
+    AGENT_TIMEOUT = "AGENT_TIMEOUT"
+    AGENT_FAILED = "AGENT_FAILED"
+    RATE_LIMITED = "RATE_LIMITED"
+    REQUEST_TIMEOUT = "REQUEST_TIMEOUT"
+    PROMPT_INJECTION_DETECTED = "PROMPT_INJECTION_DETECTED"
+    TOOL_BUDGET_EXCEEDED = "TOOL_BUDGET_EXCEEDED"
+
+
+# Bảng ánh xạ từ mã lỗi miền sang HTTP status code và message mặc định
+ERROR_HTTP_STATUS: dict[ErrorCode, tuple[int, str]] = {
+    ErrorCode.NOT_FOUND: (404, "data not found"),
+    ErrorCode.AGENT_TIMEOUT: (504, "agent timed out"),
+    ErrorCode.AGENT_FAILED: (500, "agent failed"),
+    ErrorCode.RATE_LIMITED: (429, "Too many requests. Please slow down."),
+    ErrorCode.REQUEST_TIMEOUT: (504, "Request processing timed out"),
+    ErrorCode.PROMPT_INJECTION_DETECTED: (400, "Potential prompt injection detected. Request rejected."),
+    ErrorCode.TOOL_BUDGET_EXCEEDED: (429, "Tool call budget exceeded for this request"),
+}
 
 
 class AppError(Exception):
-    """Base cho mọi lỗi đã biết trước. Ai cần hành vi riêng thì kế thừa class này."""
+    """Base cho mọi lỗi đã biết trước."""
 
     def __init__(self, code: ErrorCode, detail: str | None = None):
-        status, default_detail = code.value
+        status, default_detail = ERROR_HTTP_STATUS.get(code, (500, "internal error"))
         self.code = code
         self.status_code = status
         self.detail = detail or default_detail

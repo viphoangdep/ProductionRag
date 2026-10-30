@@ -1,9 +1,11 @@
 """Section tree: ten chuong/section -> node_id + subtree filter (doc output/section_tree.json).
 
-Agent hoi 'o chuong 3...' -> search_tool resolve ten -> Qdrant filter giu ca subtree.
+Agent hoi 'o chuong 3...' -> search_tool resolve ten -> filter giu ca subtree.
 Thieu file (corpus cu) -> store rong, resolve None, query chay khong filter.
 """
 from __future__ import annotations
+
+from core.rag.types import SearchFilter
 
 
 class SectionStore:
@@ -45,8 +47,6 @@ class SectionStore:
                 return max(pool, key=lambda nid: self.nodes[nid].get("level", 0))
         return None
 
-    def subtree_filter(self, node_id: str):
-        """Qdrant filter: chunk thuoc section hoac con chau (ancestor_ids)."""
-        from infra.retrieval import build_ancestor_filter  # reuse, lazy qdrant import
-
-        return build_ancestor_filter(node_id)
+    def subtree_filter(self, node_id: str) -> SearchFilter:
+        """Filter specification cho chunk thuộc section hoặc con cháu (ancestor_ids)."""
+        return SearchFilter(node_id=node_id)

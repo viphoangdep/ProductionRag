@@ -8,8 +8,8 @@ from typing import Any, Callable
 @dataclass
 class SearchFilter:
     """Provider-agnostic filter specification for document retrieval."""
+    node_id: str | None = None
     section: str | None = None
-    ancestor_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

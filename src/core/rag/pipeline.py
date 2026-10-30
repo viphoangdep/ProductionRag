@@ -13,7 +13,7 @@ from core.rag.fusion import (
     rrf_fuse,
     top_parents_expand,
 )
-from core.rag.types import RAGRuntimeContext
+from core.rag.types import RAGRuntimeContext, SearchFilter
 from util.string_util import normalize_ws
 
 log = logging.getLogger("ai-service")
@@ -61,24 +61,15 @@ def pack_citation_artifact(
     return context, artifact
 
 
-def _resolve_filter(section: str | None, metadata: dict[str, Any] | None, sections: Any):
-    """Combine section subtree filter and metadata match conditions."""
-    from qdrant_client import models  # lazy runtime import
-
-    section_filter = None
+def _resolve_filter(section: str | None, metadata: dict[str, Any] | None, sections: Any) -> SearchFilter | None:
+    """Combine section subtree filter and metadata match conditions into a SearchFilter."""
+    node_id = None
     if section and sections is not None:
         node_id = sections.resolve(section)
-        if node_id:
-            section_filter = sections.subtree_filter(node_id)
-    must = [
-        models.FieldCondition(key=f"metadata.{k}", match=models.MatchValue(value=v))
-        for k, v in (metadata or {}).items()
-    ]
-    if section_filter is not None and must:
-        return models.Filter(must=must, should=section_filter.should)
-    if must:
-        return models.Filter(must=must)
-    return section_filter
+    meta = metadata or {}
+    if node_id or meta:
+        return SearchFilter(node_id=node_id, metadata=meta)
+    return None
 
 
 class RAGPipeline:
@@ -120,7 +111,7 @@ class RAGPipeline:
             log.info("search cache hit q=%.60s", query_norm)
             return cache[cache_key]
 
-        qdrant_filter = _resolve_filter(section, metadata, sections)
+        filter_spec = _resolve_filter(section, metadata, sections)
         log.info(
             "search start q=%.60s section=%s direct_k=%d thr=top1>=%.2f|mean>=%.2f",
             query_norm,
@@ -131,7 +122,7 @@ class RAGPipeline:
         )
 
         # Stage 1: direct retrieve -> aggregate parents -> expand -> rerank
-        base = retriever.search(query_norm, direct_k, qdrant_filter)
+        base = retriever.search(query_norm, direct_k, filter=filter_spec)
         groups, parent_scores = aggregate_parents(base)
         expanded = top_parents_expand(groups, parent_scores, top_parents, max_child)
         reranked_direct = reranker.rerank(query_norm, expanded) if expanded else []
@@ -169,7 +160,7 @@ class RAGPipeline:
 
         rank_lists = {"__base__": base}
         for q in paraphrases:
-            rank_lists[q] = retriever.search(q, hyde_k, qdrant_filter)
+            rank_lists[q] = retriever.search(q, hyde_k, filter=filter_spec)
 
         fused = rrf_fuse(rank_lists, rrf_k=rrf_k, fused_k=fused_k)
         groups, parent_scores = aggregate_parents(fused)
