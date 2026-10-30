@@ -16,8 +16,8 @@ from core.router import is_simple
 from core.security import ToolBudget, check_prompt_injection
 from core.session.analyzer import ConversationAnalyzer
 from core.session.session_manager import SessionManager
-from mapper.chat_mapper import to_response
 from model.req.chat_req import ChatQueryRequest
+from model.res.chat_res import ChatQueryResponse
 from util.string_util import dedupe_paraphrases, normalize_ws
 
 log = logging.getLogger("ai-service")
@@ -187,16 +187,16 @@ class ChatService:
             grounding_res["grounding_score"],
         )
 
-        return to_response({
-            "session_id": session_id,
-            "answer": raw_answer,
-            "query_norm": query_norm,
-            "standalone_query": standalone_query,
-            "is_new_topic": not is_continue,
-            "is_grounded": grounding_res["is_grounded"],
-            "grounding_score": grounding_res["grounding_score"],
-            "cited_chunk_ids": grounding_res["cited_chunk_ids"],
-            "unsupported_claims": grounding_res["unsupported_claims"],
-            "paraphrases": art.get("paraphrases", []),
-            "citations": grounding_res["citations"],
-        })
+        return ChatQueryResponse(
+            session_id=session_id,
+            answer=raw_answer,
+            query_norm=query_norm,
+            standalone_query=standalone_query,
+            is_new_topic=not is_continue,
+            is_grounded=grounding_res["is_grounded"],
+            grounding_score=grounding_res["grounding_score"],
+            cited_chunk_ids=grounding_res["cited_chunk_ids"],
+            unsupported_claims=grounding_res["unsupported_claims"],
+            paraphrases=art.get("paraphrases", []),
+            citations=grounding_res["citations"],
+        )

@@ -92,8 +92,6 @@ class SessionManager:
             self._history[session_id] = self._history[session_id][-self.max_history_turns * 2 :]
 
         self._cleanup()
-        if len(self._history[session_id]) > self.max_history_turns * 2:
-            self._history[session_id] = self._history[session_id][-self.max_history_turns * 2 :]
 
     def reset_session(self, session_id: str) -> bool:
         """Xóa toàn bộ lịch sử và checkpoint của session."""
