@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from config.prompts import GROUNDING_VERIFY_PROMPT
+from core.interfaces.verifier import BaseGroundingVerifier
 
 log = logging.getLogger("ai-service")
 
@@ -64,7 +65,7 @@ def parse_grounding_json(raw_text: str) -> dict[str, Any] | None:
     return None
 
 
-class GroundingVerifier:
+class GroundingVerifier(BaseGroundingVerifier):
     """Bộ thẩm định mức độ trung thực của câu trả lời so với tài liệu ngữ cảnh."""
 
     def __init__(self, weak_model=None, enable_eval: bool = True, threshold: float = 0.7):

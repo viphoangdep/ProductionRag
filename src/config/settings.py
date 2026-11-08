@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     session_ttl_minutes: int = 60
     max_sessions: int = 1000
     max_history_turns: int = 6
+    # Session storage backend: "memory" or "postgres"
+    session_store_backend: str = "memory"
+    postgres_url: str = "postgresql://postgres:postgres@localhost:5432/rag_db"
+    postgres_table_name: str = "langchain_chat_history"
     enable_grounding_eval: bool = True
     grounding_score_threshold: float = 0.7
     # Rate limit & Timeout & Security guards
@@ -40,6 +44,23 @@ class Settings(BaseSettings):
     request_timeout_seconds: int = 60  # Max agent/query execution duration
     enable_injection_guard: bool = True  # Block prompt injections
     tool_call_budget: int = 3  # Max search_documents calls per query
+    # Corpus & Upload Settings
+    max_upload_size_bytes: int = 1024 * 1024 * 1024  # 1GB max body/file upload
+    docs_dir: str = "docs"
+    embed_model_id: str = "sentence-transformers/all-MiniLM-L6-v2"
+    chunk_max_tokens: int = 512
+    text_batch: int = 4
+    skip_s3: bool = False
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_region: str = ""
+    aws_s3_bucket: str = ""
+
+    @property
+    def docs_path(self) -> Path:
+        """Thư mục chứa tài liệu PDF gốc."""
+        p = Path(self.docs_dir)
+        return p if p.is_absolute() else (REPO_ROOT / p)
 
     @property
     def output_path(self) -> Path:

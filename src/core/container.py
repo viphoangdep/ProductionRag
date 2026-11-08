@@ -17,13 +17,32 @@ from core.grounding.verifier import GroundingVerifier
 from core.models.chat_model import create_chat_model
 from core.models.embeddings import create_embeddings
 from core.models.reranker import create_reranker_model
+from core.router import QueryRouter
 from core.session.analyzer import ConversationAnalyzer
 from core.session.session_manager import SessionManager
 from infra.retrieval import CrossEncoderReranker, QdrantRetriever
 from infra.section_store import SectionStore
 from service.chat_service import ChatService
+from service.corpus_service import CorpusService
 
 log = logging.getLogger("ai-service")
+
+
+def create_session_store():
+    """Factory creating SessionStore based on configured backend (memory vs postgres)."""
+    if getattr(settings, "session_store_backend", "memory").lower() == "postgres":
+        from infra.postgres_session_store import PostgresSessionStore
+
+        return PostgresSessionStore(
+            connection_string=settings.postgres_url,
+            table_name=settings.postgres_table_name,
+            max_history_turns=settings.max_history_turns,
+        )
+    return SessionManager(
+        ttl_minutes=settings.session_ttl_minutes,
+        max_sessions=settings.max_sessions,
+        max_history_turns=settings.max_history_turns,
+    )
 
 
 class Container(containers.DeclarativeContainer):
@@ -50,15 +69,13 @@ class Container(containers.DeclarativeContainer):
     reranker = providers.Singleton(CrossEncoderReranker, reranker=reranker_model)
     sections = providers.Singleton(SectionStore.from_output_dir, str(settings.output_path))
     asset_store = providers.Singleton(AssetService.from_output_dir, str(settings.output_path))
-    session_manager = providers.Singleton(SessionManager,
-                                          ttl_minutes=settings.session_ttl_minutes,
-                                          max_sessions=settings.max_sessions,
-                                          max_history_turns=settings.max_history_turns)
+    session_manager = providers.Singleton(create_session_store)
     grounding_verifier = providers.Singleton(GroundingVerifier,
                                             weak_model=weak_model,
                                             enable_eval=settings.enable_grounding_eval,
                                             threshold=settings.grounding_score_threshold)
     conversation_analyzer = providers.Singleton(ConversationAnalyzer, weak_model=weak_model)
+    query_router = providers.Singleton(QueryRouter, weak_model=weak_model)
 
     # --- agent ---
     agent = providers.Singleton(create_agent, weak_model,
@@ -66,7 +83,8 @@ class Container(containers.DeclarativeContainer):
     agent_context = providers.Singleton(create_agent_context, retriever=retriever,
                                         reranker=reranker, assets=asset_store,
                                         sections=sections,
-                                        weak_model=weak_model, strong_model=strong_model)
+                                        weak_model=weak_model, strong_model=strong_model,
+                                        router=query_router)
 
     # --- service (tầng nghiệp vụ) ---
     chat_service = providers.Singleton(ChatService, agent=agent, agent_context=agent_context,
@@ -75,6 +93,7 @@ class Container(containers.DeclarativeContainer):
                                        grounding_verifier=grounding_verifier,
                                        conversation_analyzer=conversation_analyzer,
                                        n_paraphrases=settings.n_paraphrases)
+    corpus_service = providers.Singleton(CorpusService, cfg=settings)
 
 
 container = Container()

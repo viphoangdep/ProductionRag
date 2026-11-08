@@ -14,6 +14,8 @@ def section_label(m: dict[str, Any]) -> str:
 
 def depth_of(doc: Any, sections: Any = None) -> int:
     """Determine depth level of chunk according to section tree (level property), falling back to section_path."""
+    if sections is not None and hasattr(sections, "depth_of"):
+        return sections.depth_of(doc)
     m = doc.metadata
     sid = m.get("section_id")
     if sections is not None and sid:
@@ -36,3 +38,4 @@ def build_context(docs: list[Any]) -> str:
             f"| section={section_label(m)}]\n{doc.page_content}"
         )
     return "\n\n---\n\n".join(parts)
+

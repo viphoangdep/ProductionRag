@@ -14,6 +14,10 @@ def get_chat_service():
     return container.chat_service()
 
 
+def get_corpus_service():
+    return container.corpus_service()
+
+
 def get_asset_store():
     return container.asset_store()
 

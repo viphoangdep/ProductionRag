@@ -1,13 +1,55 @@
+version: '3.8'
+
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rag_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: rag-qdrant
+    restart: unless-stopped
     ports:
       - "6333:6333"
       - "6334:6334"
     volumes:
       - qdrant_storage:/qdrant/storage
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rag-ai-service
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      SESSION_STORE_BACKEND: postgres
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/rag_db
+      QDRANT_URL: http://qdrant:6333
+      OUTPUT_DIR: /code/output
+    volumes:
+      - ./output:/code/output:ro
 
 volumes:
+  pgdata:
   qdrant_storage:

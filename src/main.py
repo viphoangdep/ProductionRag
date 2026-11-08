@@ -19,11 +19,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from config.settings import settings
 from core.exception.errors import AppError
 from web.controller.chat_controller import router as chat_router
+from web.controller.corpus_controller import router as corpus_router
 from web.controller.health_controller import router as health_router
 from web.middleware.exception_handler import app_error_handler, app_exception_handler
 from web.middleware.logging_middleware import LoggingMiddleware
+from web.middleware.payload_size_middleware import PayloadSizeLimitMiddleware
 from web.middleware.rate_limit_middleware import RateLimitMiddleware
 from web.middleware.timeout_middleware import TimeoutMiddleware
 
@@ -42,12 +45,14 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="ai-service", lifespan=lifespan)
     app.add_middleware(LoggingMiddleware)
+    app.add_middleware(PayloadSizeLimitMiddleware, max_size_bytes=settings.max_upload_size_bytes)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(TimeoutMiddleware)
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(Exception, app_exception_handler)
     app.include_router(chat_router)
     app.include_router(health_router)
+    app.include_router(corpus_router)
     return app
 
 

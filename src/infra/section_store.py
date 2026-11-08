@@ -5,10 +5,11 @@ Thieu file (corpus cu) -> store rong, resolve None, query chay khong filter.
 """
 from __future__ import annotations
 
+from core.interfaces.section_store import BaseSectionStore
 from core.rag.types import SearchFilter
 
 
-class SectionStore:
+class SectionStore(BaseSectionStore):
     def __init__(self, nodes: dict | None = None, root_id: str | None = None):
         self.nodes = nodes or {}
         self.root_id = root_id
@@ -50,3 +51,16 @@ class SectionStore:
     def subtree_filter(self, node_id: str) -> SearchFilter:
         """Filter specification cho chunk thuộc section hoặc con cháu (ancestor_ids)."""
         return SearchFilter(node_id=node_id)
+
+    def depth_of(self, doc: Any) -> int:
+        """Tính độ sâu cây phân cấp của một chunk tài liệu."""
+        m = getattr(doc, "metadata", {}) or {}
+        sid = m.get("section_id")
+        if sid and sid in self.nodes:
+            lvl = self.nodes[sid].get("level")
+            if lvl is not None:
+                return int(lvl)
+        path = m.get("section_path") or ""
+        if not path or path == "__ROOT__":
+            return 0
+        return path.count(" > ") + 1

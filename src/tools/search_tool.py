@@ -7,7 +7,8 @@ from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
 
 from core.rag.context_builder import build_context, depth_of, section_label
-from core.rag.fusion import (
+from core.rag.pipeline import RAGPipeline, pack_citation_artifact
+from util.fusion import (
     aggregate_parents,
     group_key,
     group_title,
@@ -15,7 +16,6 @@ from core.rag.fusion import (
     rrf_fuse,
     top_parents_expand,
 )
-from core.rag.pipeline import RAGPipeline, pack_citation_artifact
 
 # Backwards compatibility alias for test suites
 _pack = pack_citation_artifact

@@ -4,10 +4,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from core.interfaces.asset_store import BaseAssetStore
+from core.interfaces.reranker import BaseReranker
+from core.interfaces.retriever import BaseRetriever
+from core.interfaces.section_store import BaseSectionStore
+
 
 @dataclass
 class SearchFilter:
     """Provider-agnostic filter specification for document retrieval."""
+
     node_id: str | None = None
     section: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -16,10 +22,11 @@ class SearchFilter:
 @dataclass
 class RAGRuntimeContext:
     """Strongly-typed runtime context for the RAG search tool and pipeline."""
-    retriever: Any
-    reranker: Any
-    assets: Any
-    sections: Any = None
+
+    retriever: BaseRetriever | Any
+    reranker: BaseReranker | Any
+    assets: BaseAssetStore | Any
+    sections: BaseSectionStore | Any = None
     weak_model: Any = None
     strong_model: Any = None
     weak_name: str = ""

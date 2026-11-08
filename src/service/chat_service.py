@@ -12,6 +12,7 @@ from config.prompts import HYDE_PROMPT, QUERY_CONTEXTUALIZE_PROMPT
 from config.settings import settings
 from core.exception.errors import AppError, ErrorCode
 from core.grounding.verifier import GroundingVerifier
+from core.interfaces.session_store import BaseSessionStore
 from core.router import is_simple
 from core.security import ToolBudget, check_prompt_injection
 from core.session.analyzer import ConversationAnalyzer
@@ -25,10 +26,15 @@ log = logging.getLogger("ai-service")
 
 def _text(msg) -> str:
     """Content của AI message: string hoặc list content-block -> text."""
-    content = getattr(msg, "content", msg)
+    if isinstance(msg, dict):
+        content = msg.get("content", "")
+    else:
+        content = getattr(msg, "content", msg)
     if isinstance(content, str):
         return content
-    return " ".join(b.get("text", "") if isinstance(b, dict) else str(b) for b in content)
+    if isinstance(content, list):
+        return " ".join(b.get("text", "") if isinstance(b, dict) else str(b) for b in content)
+    return str(content)
 
 
 def _artifact(msgs: list) -> dict:
@@ -53,7 +59,7 @@ class ChatService:
         agent,
         agent_context: dict,
         weak_model,
-        session_manager: SessionManager | None = None,
+        session_manager: BaseSessionStore | SessionManager | None = None,
         grounding_verifier: GroundingVerifier | None = None,
         conversation_analyzer: ConversationAnalyzer | None = None,
         n_paraphrases: int = 3,
@@ -74,17 +80,25 @@ class ChatService:
         log.info("hyde n=%d", len(out))
         return out
 
-    def contextualize_query(self, session_id: str, query_norm: str) -> str:
+    def contextualize_query(self, session_id: str, query_norm: str, user_id: str = "default_user") -> str:
         """Dựa trên lịch sử hội thoại, viết lại câu hỏi thành standalone query nếu cần."""
         if not session_id:
             return query_norm
-        recent_4_text = self.session_manager.get_recent_messages_text(session_id, n=4)
+        recent_4_text = self.session_manager.get_recent_messages_text(session_id, n=4, user_id=user_id)
         _, _, final_query = self.analyzer.analyze_and_rewrite(query_norm, recent_4_text)
         return final_query
 
-    def reset_session(self, session_id: str) -> bool:
+    def reset_session(self, session_id: str, user_id: str = "default_user") -> bool:
         """Xóa lịch sử hội thoại của một session."""
-        return self.session_manager.reset_session(session_id)
+        return self.session_manager.reset_session(session_id, user_id=user_id)
+
+    def list_user_sessions(self, user_id: str = "default_user") -> list[dict]:
+        """Danh sách toàn bộ các session của một user."""
+        return self.session_manager.list_user_sessions(user_id=user_id)
+
+    def get_session_history(self, session_id: str, user_id: str = "default_user") -> list[dict]:
+        """Lấy toàn bộ lịch sử tin nhắn của một session."""
+        return self.session_manager.get_history(session_id, user_id=user_id)
 
     def _invoke_agent(self, payload: dict, ctx: dict, config: dict | None):
         """Invoke agent tương thích cả LangGraph lẫn mock object trong tests."""
@@ -96,9 +110,10 @@ class ChatService:
 
     def query(self, body: ChatQueryRequest):
         t0 = time.perf_counter()
+        user_id = getattr(body, "user_id", None) or "default_user"
         session_id = body.session_id or str(uuid.uuid4())
         if body.clear_history:
-            self.reset_session(session_id)
+            self.reset_session(session_id, user_id=user_id)
 
         query_norm = normalize_ws(body.query)
 
@@ -107,7 +122,7 @@ class ChatService:
             check_prompt_injection(query_norm)
 
         # 1. Lấy 4 message gần nhất (2 lượt gần nhất)
-        recent_4_text = self.session_manager.get_recent_messages_text(session_id, n=4)
+        recent_4_text = self.session_manager.get_recent_messages_text(session_id, n=4, user_id=user_id)
 
         # 2. Bộ phân tích: xem câu query có CẦN context của 4 câu hội thoại trước không?
         # - Nếu CẦN (continue): tóm tắt 4 câu hội thoại trước, nhét vào prompt, rewrite query.
@@ -176,11 +191,12 @@ class ChatService:
         )
 
         # Lưu lượt hội thoại vào SessionManager
-        self.session_manager.record_turn(session_id, body.query, raw_answer)
+        self.session_manager.record_turn(session_id, body.query, raw_answer, user_id=user_id)
 
         log.info(
-            "chat out session=%s %.0fms citations=%d grounded=%s score=%s",
+            "chat out session=%s user=%s %.0fms citations=%d grounded=%s score=%s",
             session_id,
+            user_id,
             (time.perf_counter() - t0) * 1000,
             len(grounding_res["citations"]),
             grounding_res["is_grounded"],
@@ -189,6 +205,7 @@ class ChatService:
 
         return ChatQueryResponse(
             session_id=session_id,
+            user_id=user_id,
             answer=raw_answer,
             query_norm=query_norm,
             standalone_query=standalone_query,

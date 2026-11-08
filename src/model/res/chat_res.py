@@ -44,6 +44,7 @@ class Citation(BaseModel):
 
 class ChatQueryResponse(BaseModel):
     session_id: str = ""
+    user_id: str = "default_user"
     answer: str
     query_norm: str
     standalone_query: str | None = None

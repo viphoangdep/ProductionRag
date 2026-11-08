@@ -13,6 +13,15 @@ SYSTEM_PROMPT = (
 
 SIMPLE_PROMPT = "You are a helpful assistant. Reply briefly in the user's language."
 
+ROUTER_INTENT_PROMPT = (
+    "You are a Query Intent Classifier.\n"
+    "Task: Classify the user's message into exactly ONE category:\n"
+    "- 'CHITCHAT': Casual greetings, introductions, polite expressions (thanks, bye), or bot identity questions.\n"
+    "- 'RAG_SEARCH': The user is asking about product specifications, operations, settings, errors, instructions, or factual information.\n\n"
+    "User Message: {query}\n\n"
+    "Output ONLY one word: CHITCHAT or RAG_SEARCH."
+)
+
 HYDE_PROMPT = (
     "Rewrite the following question into {n} diverse search queries. "
     "Rules: one query per line, no numbering, no explanation, "

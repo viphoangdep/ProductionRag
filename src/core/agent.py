@@ -20,11 +20,12 @@ def create_agent(weak_model, checkpointer=None):
 
 
 def create_agent_context(*, retriever, reranker, assets, sections,
-                         weak_model, strong_model):
+                         weak_model, strong_model, router=None, **kwargs):
     """Context runtime cho tool: adapter + model + tham số pipeline."""
     return {"retriever": retriever, "reranker": reranker,
             "assets": assets, "sections": sections,
             "weak_model": weak_model, "strong_model": strong_model,
+            "router": router,
             "weak_name": settings.llm_lv1, "strong_name": settings.llm_lv2,
             "cfg": {"hyde_k": settings.hyde_k, "direct_k": settings.direct_k,
                     "evidence_top1_thr": settings.evidence_top1_thr,

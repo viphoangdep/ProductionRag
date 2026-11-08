@@ -14,6 +14,9 @@ class ErrorCode(str, Enum):
     REQUEST_TIMEOUT = "REQUEST_TIMEOUT"
     PROMPT_INJECTION_DETECTED = "PROMPT_INJECTION_DETECTED"
     TOOL_BUDGET_EXCEEDED = "TOOL_BUDGET_EXCEEDED"
+    PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE"
+    TASK_NOT_FOUND = "TASK_NOT_FOUND"
+    CORPUS_BUILD_FAILED = "CORPUS_BUILD_FAILED"
 
 
 # Bảng ánh xạ từ mã lỗi miền sang HTTP status code và message mặc định
@@ -25,6 +28,9 @@ ERROR_HTTP_STATUS: dict[ErrorCode, tuple[int, str]] = {
     ErrorCode.REQUEST_TIMEOUT: (504, "Request processing timed out"),
     ErrorCode.PROMPT_INJECTION_DETECTED: (400, "Potential prompt injection detected. Request rejected."),
     ErrorCode.TOOL_BUDGET_EXCEEDED: (429, "Tool call budget exceeded for this request"),
+    ErrorCode.PAYLOAD_TOO_LARGE: (413, "Payload too large. Maximum allowed size is 1GB."),
+    ErrorCode.TASK_NOT_FOUND: (404, "Corpus task not found"),
+    ErrorCode.CORPUS_BUILD_FAILED: (500, "Corpus build failed"),
 }
 
 

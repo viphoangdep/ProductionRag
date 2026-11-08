@@ -7,13 +7,13 @@ from typing import Any
 
 from config.settings import settings
 from core.rag.context_builder import build_context, depth_of
-from core.rag.fusion import (
+from core.rag.types import RAGRuntimeContext, SearchFilter
+from util.fusion import (
     aggregate_parents,
     is_evidence_sufficient,
     rrf_fuse,
     top_parents_expand,
 )
-from core.rag.types import RAGRuntimeContext, SearchFilter
 from util.string_util import normalize_ws
 
 log = logging.getLogger("ai-service")

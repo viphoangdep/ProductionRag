@@ -11,6 +11,18 @@ from core.rag.fusion import (
     is_evidence_sufficient,
 )
 from core.rag.context_builder import section_label, depth_of, build_context
+import util.fusion as util_fusion
+import util.fusion_util as util_fusion_util
+
+
+def test_fusion_util_exports_match():
+    assert util_fusion.rrf_fuse is rrf_fuse
+    assert util_fusion.group_key is group_key
+    assert util_fusion.group_title is group_title
+    assert util_fusion.aggregate_parents is aggregate_parents
+    assert util_fusion.top_parents_expand is top_parents_expand
+    assert util_fusion.is_evidence_sufficient is is_evidence_sufficient
+    assert util_fusion_util.rrf_fuse is rrf_fuse
 
 
 def _make_doc(chunk_id, section_id=None, parent_id=None, section_title=None, chunk_index=0, page_content="test"):

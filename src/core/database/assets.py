@@ -6,9 +6,10 @@ import json
 from pathlib import Path
 
 from core.exception.errors import AppError, ErrorCode
+from core.interfaces.asset_store import BaseAssetStore
 
 
-class AssetService:
+class AssetService(BaseAssetStore):
     def __init__(self, output_dir: Path, image_index: dict | None = None,
                  table_rows: dict | None = None, table_page: dict | None = None):
         self._out = output_dir
